@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RandoChat — Meet Strangers Instantly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ───── CSS Variables ───── */
+    :root {
+      --bg:          #06080f;
+      --surface:     #0d1020;
+      --surface2:    #131629;
+      --border:      rgba(99, 179, 237, 0.15);
+      --border-glow: rgba(99, 179, 237, 0.4);
+      --cyan:        #38bdf8;
+      --cyan-bright: #67e8f9;
+      --pink:        #f472b6;
+      --pink-dim:    #db2777;
+      --green:       #4ade80;
+      --yellow:      #fbbf24;
+      --text:        #e2e8f0;
+      --text-muted:  #64748b;
+      --text-dim:    #94a3b8;
+      --font-head:   'Exo 2', sans-serif;
+      --font-body:   'Nunito', sans-serif;
+      --radius:      12px;
+      --radius-lg:   20px;
+      --shadow:      0 8px 32px rgba(0,0,0,0.6);
+      --glow-cyan:   0 0 20px rgba(56,189,248,0.4);
+      --glow-pink:   0 0 20px rgba(244,114,182,0.4);
+    }
+
+    /* ───── Reset & Base ───── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ───── Background Grid ───── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ───── Screens ───── */
+    .screen { position: fixed; inset: 0; display: flex; flex-direction: column; z-index: 1; }
+    .screen.hidden { display: none !important; }
+
+    /* ══════════════════════════════════════════
+       SETUP SCREEN
+    ══════════════════════════════════════════ */
+    #setup-screen {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .setup-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 52px 48px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    .setup-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), transparent);
+    }
+
+    /* Logo */
+    .logo {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .logo-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--cyan), var(--pink));
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 0 32px rgba(56,189,248,0.3);
+    }
+    .logo-title {
+      font-family: var(--font-head);
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--cyan-bright), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* Online badge */
+    .online-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.25);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 32px;
+    }
+    .online-badge .dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    /* Form */
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+      font-family: var(--font-head);
+    }
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .gender-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      position: relative;
+    }
+    .gender-btn .g-icon { font-size: 22px; }
+    .gender-btn:hover {
+      border-color: var(--border-glow);
+      color: var(--text);
+      background: rgba(56,189,248,0.06);
+    }
+    .gender-btn.active {
+      border-color: var(--cyan);
+      color: var(--cyan-bright);
+      background: rgba(56,189,248,0.1);
+      box-shadow: var(--glow-cyan);
+    }
+
+    /* Female filter toggle */
+    .filter-card {
+      background: linear-gradient(135deg, rgba(244,114,182,0.08), rgba(244,114,182,0.03));
+      border: 1px solid rgba(244,114,182,0.25);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-card:hover { border-color: rgba(244,114,182,0.5); }
+    .filter-card.active {
+      border-color: var(--pink);
+      box-shadow: var(--glow-pink);
+      background: linear-gradient(135deg, rgba(244,114,182,0.12), rgba(244,114,182,0.04));
+    }
+    .filter-info { display: flex; align-items: center; gap: 12px; }
+    .filter-icon {
+      width: 40px; height: 40px;
+      background: rgba(244,114,182,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .filter-text strong {
+      display: block;
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .filter-text span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .toggle {
+      width: 46px; height: 26px;
+      background: var(--surface2);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .filter-card.active .toggle {
+      background: var(--pink-dim);
+    }
+    .filter-card.active .toggle::after {
+      left: 23px;
+      background: white;
+    }
+
+    /* Age confirm */
+    .age-confirm {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .age-confirm input[type="checkbox"] {
+      width: 16px; height: 16px;
+      margin-top: 2px;
+      accent-color: var(--cyan);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .age-confirm a { color: var(--cyan); text-decoration: none; }
+    .age-confirm a:hover { text-decoration: underline; }
+
+    /* Start button */
+    .btn-start {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--cyan), #0ea5e9);
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(56,189,248,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-start::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    }
+    .btn-start:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(56,189,248,0.5);
+    }
+    .btn-start:active { transform: translateY(0); }
+    .btn-start:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ══════════════════════════════════════════
+       CHAT SCREEN
+    ══════════════════════════════════════════ */
+    #chat-screen {
+      flex-direction: row;
+      background: var(--bg);
+    }
+
+    /* ── Left: Video Panel ── */
+    .video-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: #000;
+      overflow: hidden;
+    }
+
+    /* Remote video */
+    #remote-video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+
+    /* Searching overlay */
+    .searching-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,8,15,0.92);
+      gap: 20px;
+      z-index: 5;
+    }
+    .searching-overlay.hidden { display: none; }
+    .search-ring {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: var(--cyan);
+      border-right-color: var(--cyan);
+      animation: spin 1.2s linear infinite;
+      position: relative;
+    }
+    .search-ring::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-bottom-color: var(--pink);
+      animation: spin 0.8s linear infinite reverse;
+    }
+    .search-icon { font-size: 26px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .search-text {
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .search-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .search-filter-tag {
+      background: rgba(244,114,182,0.15);
+      border: 1px solid rgba(244,114,182,0.35);
+      color: var(--pink);
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: none;
+    }
+    .search-filter-tag.show { display: block; }
+
+    /* Partner left overlay */
+    .partner-left-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,8,15,0.88);
+      gap: 16px;
+      z-index: 5;
+    }
+    .partner-left-overlay.hidden { display: none; }
+    .partner-left-overlay .icon { font-size: 48px; }
+    .partner-left-overlay p {
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .partner-left-overlay small {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* Local video (PiP) */
+    .local-pip {
+      position: absolute;
+      bottom: 80px;
+      right: 16px;
+      width: 160px;
+      height: 110px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(56,189,248,0.4);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 10;
+      background: #111;
+      transition: all 0.2s;
+    }
+    .local-pip:hover { transform: scale(1.04); }
+    #local-video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .pip-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+    }
+
+    /* Status bar */
+    .status-bar {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(13,16,32,0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-head);
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .status-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .status-dot.searching { background: var(--yellow); animation: pulse-dot 1s ease-in-out infinite; }
+    .status-dot.waiting   { background: var(--text-muted); }
+
+    /* Video controls */
+    .video-controls {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 16px 20px;
+      background: linear-gradient(transparent, rgba(6,8,15,0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 10;
+    }
+    .btn-ctrl {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border: none;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+      font-family: var(--font-body);
+    }
+    .btn-ctrl .ctrl-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+      background: rgba(13,16,32,0.8);
+      backdrop-filter: blur(8px);
+    }
+    .btn-ctrl .ctrl-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .btn-ctrl:hover .ctrl-icon {
+      transform: scale(1.08);
+      border-color: var(--border-glow);
+    }
+    .btn-ctrl.btn-next .ctrl-icon  { background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.4); color: var(--cyan); }
+    .btn-ctrl.btn-next:hover .ctrl-icon { background: rgba(56,189,248,0.3); box-shadow: var(--glow-cyan); }
+    .btn-ctrl.btn-stop .ctrl-icon  { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: #f87171; }
+    .btn-ctrl.btn-stop:hover .ctrl-icon { background: rgba(239,68,68,0.3); }
+    .btn-ctrl.btn-mute .ctrl-icon  { color: var(--text-dim); }
+    .btn-ctrl.btn-mute.active .ctrl-icon { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.35); color: var(--yellow); }
+    .btn-ctrl.btn-cam .ctrl-icon   { color: var(--text-dim); }
+    .btn-ctrl.btn-cam.active .ctrl-icon  { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.35); color: #f87171; }
+
+    /* ── Right: Chat Panel ── */
+    .chat-panel {
+      width: 340px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+    }
+
+    .chat-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+    }
+    .chat-header-left { display: flex; align-items: center; gap: 10px; }
+    .chat-logo {
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--cyan), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .online-indicator {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .online-indicator .dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .btn-home {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-home:hover { border-color: var(--border-glow); color: var(--text); }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .msg {
+      max-width: 85%;
+      padding: 9px 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      animation: fadeUp 0.2s ease;
+      word-break: break-word;
+    }
+    .msg.mine {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(56,189,248,0.2), rgba(14,165,233,0.15));
+      border: 1px solid rgba(56,189,248,0.3);
+      color: var(--text);
+      border-bottom-right-radius: 3px;
+    }
+    .msg.theirs {
+      align-self: flex-start;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 3px;
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-style: italic;
+      border: none;
+      padding: 4px 0;
+    }
+    .msg.system.good { color: var(--green); }
+    .msg.system.bad  { color: #f87171; }
+
+    /* Typing indicator */
+    .typing-indicator {
+      align-self: flex-start;
+      padding: 8px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      border-bottom-left-radius: 3px;
+      display: none;
+      gap: 4px;
+    }
+    .typing-indicator.show { display: flex; align-items: center; }
+    .typing-dot {
+      width: 6px; height: 6px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: typing-bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Chat input */
+    .chat-input-area {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      resize: none;
+      max-height: 100px;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.5;
+    }
+    .chat-input::placeholder { color: var(--text-muted); }
+    .chat-input:focus { border-color: rgba(56,189,248,0.5); }
+    .chat-input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-send {
+      width: 40px; height: 40px;
+      background: var(--cyan);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      color: #000;
+    }
+    .btn-send:hover { background: var(--cyan-bright); transform: scale(1.05); }
+    .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ── Animations ── */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%           { transform: translateY(-4px); }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: var(--glow-cyan); }
+      50%      { box-shadow: 0 0 35px rgba(56,189,248,0.7); }
+    }
+
+    /* ── Mobile Responsive ── */
+    @media (max-width: 768px) {
+      #chat-screen { flex-direction: column; }
+      .video-panel { flex: 1; min-height: 0; }
+      .chat-panel {
+        width: 100%;
+        height: 300px;
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
+      .local-pip { width: 100px; height: 72px; bottom: 70px; }
+      .setup-card { padding: 36px 24px; }
+    }
+    @media (max-width: 480px) {
+      .select-row { grid-template-columns: 1fr 1fr 1fr; }
+      .btn-ctrl .ctrl-icon { width: 42px; height: 42px; font-size: 18px; }
+    }
+
+    /* ── Scrollbar global ── */
+    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ── Disable text selection on buttons ── */
+    button { user-select: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════ SETUP SCREEN ══════════════ -->
+  <div class="screen" id="setup-screen">
+    <div class="setup-card">
+      <div class="logo">
+        <div class="logo-icon">📹</div>
+        <div class="logo-title">RandoChat</div>
+        <div class="logo-sub">Random 1-on-1 Video Chat with Strangers</div>
+      </div>
+
+      <div style="text-align:center; margin-bottom: 28px;">
+        <div class="online-badge">
+          <span class="dot"></span>
+          <span id="online-count-setup">0</span>&nbsp;Strangers Online
+        </div>
+      </div>
+
+      <!-- Gender select -->
+      <div class="field">
+        <label>I am</label>
+        <div class="select-row">
+          <button class="gender-btn" data-gender="male" onclick="selectGender('male', this)">
+            <span class="g-icon">♂️</span> Male
+          </button>
+          <button class="gender-btn" data-gender="female" onclick="selectGender('female', this)">
+            <span class="g-icon">♀️</span> Female
+          </button>
+          <button class="gender-btn" data-gender="other" onclick="selectGender('other', this)">
+            <span class="g-icon">⚧️</span> Other
+          </button>
+        </div>
+      </div>
+
+      <!-- Female filter -->
+      <div class="field">
+        <label>Partner Filter</label>
+        <div class="filter-card" id="female-filter-card" onclick="toggleFemaleFilter()">
+          <div class="filter-info">
+            <div class="filter-icon">👩</div>
+            <div class="filter-text">
+              <strong>Female Partners Only</strong>
+              <span>Match exclusively with female users</span>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+
+      <!-- Age confirm -->
+      <div class="age-confirm">
+        <input type="checkbox" id="age-check" onchange="updateStartBtn()" />
+        <span>
+          I confirm I am at least <strong>18 years old</strong> and agree to the
+          <a href="#" onclick="return false;">Community Guidelines</a> &amp;
+          <a href="#" onclick="return false;">Terms of Service</a>.
+        </span>
+      </div>
+
+      <button class="btn-start" id="btn-start" onclick="startChat()" disabled>
+        🎲 &nbsp; Start Video Chat
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════ CHAT SCREEN ══════════════ -->
+  <div class="screen hidden" id="chat-screen">
+
+    <!-- Left: Video Panel -->
+    <div class="video-panel">
+      <!-- Status bar -->
+      <div class="status-bar" id="status-bar">
+        <span class="status-dot searching" id="status-dot"></span>
+        <span id="status-text">Searching...</span>
+      </div>
+
+      <!-- Remote video -->
+      <video id="remote-video" autoplay playsinline></video>
+
+      <!-- Searching overlay -->
+      <div class="searching-overlay" id="searching-overlay">
+        <div class="search-ring">
+          <span class="search-icon">🔭</span>
+        </div>
+        <div class="search-text">Finding your match...</div>
+        <div class="search-sub">Please wait while we connect you to a stranger</div>
+        <div class="search-filter-tag" id="filter-tag">👩 Female Partner Filter Active</div>
+      </div>
+
+      <!-- Partner left overlay -->
+      <div class="partner-left-overlay hidden" id="partner-left-overlay">
+        <div class="icon">👋</div>
+        <p>Stranger has left the chat</p>
+        <small>Press Next to find a new partner</small>
+      </div>
+
+      <!-- Local PiP -->
+      <div class="local-pip">
+        <video id="local-video" autoplay playsinline muted></video>
+        <div class="pip-label">You</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="video-controls">
+        <button class="btn-ctrl btn-mute" id="btn-mute" onclick="toggleMute()" title="Toggle Mic">
+          <div class="ctrl-icon">🎙️</div>
+          <span class="ctrl-label">Mic</span>
+        </button>
+        <button class="btn-ctrl btn-cam" id="btn-cam" onclick="toggleCamera()" title="Toggle Camera">
+          <div class="ctrl-icon">📷</div>
+          <span class="ctrl-label">Camera</span>
+        </button>
+        <button class="btn-ctrl btn-next" onclick="nextChat()" title="Next Stranger">
+          <div class="ctrl-icon">⏭️</div>
+          <span class="ctrl-label">Next</span>
+        </button>
+        <button class="btn-ctrl btn-stop" onclick="stopChat()" title="End Chat">
+          <div class="ctrl-icon">📴</div>
+          <span class="ctrl-label">End</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Chat Panel -->
+    <div class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <div class="chat-logo">RandoChat</div>
+          <div class="online-indicator">
+            <span class="dot"></span>
+            <span id="online-count-chat">0</span>
+          </div>
+        </div>
+        <button class="btn-home" onclick="stopChat()" title="Return home">⌂</button>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="msg system">Welcome to RandoChat 👋 Be respectful.</div>
+      </div>
+
+      <div class="typing-indicator" id="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+
+      <div class="chat-input-area">
+        <textarea
+          class="chat-input"
+          id="chat-input"
+          placeholder="Say something..."
+          rows="1"
+          maxlength="500"
+          disabled
+          oninput="onInputChange(this)"
+          onkeydown="onKeyDown(event)"
+        ></textarea>
+        <button class="btn-send" id="btn-send" onclick="sendMessage()" disabled title="Send">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────────────── Scripts ───────────────── -->
+  <!-- SimplePeer CDN (WebRTC made easy) -->
+  <script>window.process = { env: {} };</script>
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+  // ════════════════════════════════════════════════════
+  //  RandoChat — Frontend App Logic
+  // ════════════════════════════════════════════════════
+
+  const socket = io({ transports: ['websocket', 'polling'] });
+
+  // ── State ──────────────────────────────────────────
+  let localStream   = null;
+  let peer          = null;
+  let myGender      = '';
+  let wantsFemale   = false;
+  let micMuted      = false;
+  let camOff        = false;
+  let typingTimeout = null;
+  let isTyping      = false;
+  let partnerId     = null;
+
+  // ── DOM Refs ───────────────────────────────────────
+  const setupScreen     = document.getElementById('setup-screen');
+  const chatScreen      = document.getElementById('chat-screen');
+  const remoteVideo     = document.getElementById('remote-video');
+  const localVideo      = document.getElementById('local-video');
+  const messagesEl      = document.getElementById('messages');
+  const chatInput       = document.getElementById('chat-input');
+  const btnSend         = document.getElementById('btn-send');
+  const statusDot       = document.getElementById('status-dot');
+  const statusText      = document.getElementById('status-text');
+  const searchingOverlay   = document.getElementById('searching-overlay');
+  const partnerLeftOverlay = document.getElementById('partner-left-overlay');
+  const filterTag          = document.getElementById('filter-tag');
+  const typingIndicator    = document.getElementById('typing-indicator');
+
+  // ── Setup Screen ───────────────────────────────────
+  function selectGender(g, el) {
+    myGender = g;
+    document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    updateStartBtn();
+  }
+
+  function toggleFemaleFilter() {
+    wantsFemale = !wantsFemale;
+    document.getElementById('female-filter-card').classList.toggle('active', wantsFemale);
+  }
+
+  function updateStartBtn() {
+    const ageOk = document.getElementById('age-check').checked;
+    document.getElementById('btn-start').disabled = !(ageOk && myGender);
+  }
+
+  // ── Start Chat ─────────────────────────────────────
+  async function startChat() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+    } catch (e) {
+      alert('⚠️ Camera/microphone access is required for video chat.\n\nPlease allow permissions and try again.');
+      return;
+    }
+
+    // Switch screens
+    setupScreen.classList.add('hidden');
+    chatScreen.classList.remove('hidden');
+
+    if (wantsFemale) filterTag.classList.add('show');
+
+    setStatus('searching');
+    socket.emit('joinQueue', { gender: myGender, wantsFemale });
+  }
+
+  // ── Next Chat ──────────────────────────────────────
+  function nextChat() {
+    socket.emit('leaveChat');
+    destroyPeer();
+    clearMessages();
+    partnerLeftOverlay.classList.add('hidden');
+    setStatus('searching');
+    if (wantsFemale) filterTag.classList.add('show');
+    appendMessage('system', '— Finding a new stranger... —', '');
+    socket.emit('joinQueue', { gender: myGender, wantsFemale });
+  }
+
+  // ── Stop / Return Home ─────────────────────────────
+  function stopChat() {
+    socket.emit('leaveChat');
+    destroyPeer();
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = null;
+    }
+    chatScreen.classList.add('hidden');
+    setupScreen.classList.remove('hidden');
+  }
+
+  // ── Peer Creation ──────────────────────────────────
+  function createPeer(remoteId, initiator) {
+    partnerId = remoteId;
+    peer = new SimplePeer({
+      initiator,
+      stream: localStream,
+      trickle: true,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ]
+      }
+    });
+
+    peer.on('signal', (data) => {
+      socket.emit('signal', { to: remoteId, data });
+    });
+
+    peer.on('stream', (stream) => {
+      remoteVideo.srcObject = stream;
+      remoteVideo.play().catch(() => {});
+      searchingOverlay.classList.add('hidden');
+      partnerLeftOverlay.classList.add('hidden');
+      setStatus('connected');
+      chatInput.disabled = false;
+      btnSend.disabled = false;
+      appendMessage('system good', '🟢 Connected to a stranger!', '');
+    });
+
+    peer.on('error', (err) => {
+      console.warn('Peer error:', err.message);
+      appendMessage('system bad', '⚠️ Connection error. Trying again...', '');
+      destroyPeer();
+      setStatus('searching');
+      socket.emit('joinQueue', { gender: myGender, wantsFemale });
+    });
+
+    peer.on('close', () => {
+      destroyPeer();
+    });
+  }
+
+  function destroyPeer() {
+    if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+    remoteVideo.srcObject = null;
+    partnerId = null;
+    chatInput.disabled = true;
+    btnSend.disabled = true;
+  }
+
+  // ── Status Helper ──────────────────────────────────
+  function setStatus(state) {
+    statusDot.className = 'status-dot';
+    if (state === 'connected') {
+      statusDot.classList.add('connected');
+      statusText.textContent = 'Connected';
+      searchingOverlay.classList.add('hidden');
+    } else if (state === 'searching') {
+      statusDot.classList.add('searching');
+      statusText.textContent = 'Searching...';
+      searchingOverlay.classList.remove('hidden');
+    } else if (state === 'waiting') {
+      statusDot.classList.add('searching');
+      statusText.textContent = 'Waiting...';
+      searchingOverlay.classList.remove('hidden');
+    }
+  }
+
+  // ── Messages ───────────────────────────────────────
+  function appendMessage(type, text) {
+    const div = document.createElement('div');
+    div.className = `msg ${type}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function clearMessages() {
+    messagesEl.innerHTML = '<div class="msg system">— New chat started —</div>';
+  }
+
+  // ── Send Message ───────────────────────────────────
+  function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text || !peer) return;
+    socket.emit('chatMessage', text);
+    appendMessage('mine', text);
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+    socket.emit('typing', false);
+    isTyping = false;
+  }
+
+  // ── Typing indicators ──────────────────────────────
+  function onInputChange(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+
+    if (!isTyping) {
+      isTyping = true;
+      socket.emit('typing', true);
+    }
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      isTyping = false;
+      socket.emit('typing', false);
+    }, 1500);
+
+    btnSend.disabled = !el.value.trim();
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  // ── Media Controls ─────────────────────────────────
+  function toggleMute() {
+    if (!localStream) return;
+    micMuted = !micMuted;
+    localStream.getAudioTracks().forEach(t => t.enabled = !micMuted);
+    const btn = document.getElementById('btn-mute');
+    btn.classList.toggle('active', micMuted);
+    btn.querySelector('.ctrl-icon').textContent = micMuted ? '🔇' : '🎙️';
+    btn.querySelector('.ctrl-label').textContent = micMuted ? 'Unmute' : 'Mic';
+  }
+
+  function toggleCamera() {
+    if (!localStream) return;
+    camOff = !camOff;
+    localStream.getVideoTracks().forEach(t => t.enabled = !camOff);
+    const btn = document.getElementById('btn-cam');
+    btn.classList.toggle('active', camOff);
+    btn.querySelector('.ctrl-icon').textContent = camOff ? '🚫' : '📷';
+    btn.querySelector('.ctrl-label').textContent = camOff ? 'Start Cam' : 'Camera';
+  }
+
+  // ════════════════════════════════════════════════════
+  //  Socket.io Events
+  // ════════════════════════════════════════════════════
+
+  socket.on('connect', () => {
+    console.log('Socket connected:', socket.id);
+  });
+
+  socket.on('onlineCount', (count) => {
+    document.getElementById('online-count-setup').textContent = count.toLocaleString();
+    document.getElementById('online-count-chat').textContent = count.toLocaleString() + ' online';
+  });
+
+  socket.on('waiting', () => {
+    setStatus('waiting');
+  });
+
+  socket.on('matched', ({ partnerId: pid, initiator }) => {
+    destroyPeer();
+    createPeer(pid, initiator);
+  });
+
+  socket.on('signal', ({ from, data }) => {
+    if (peer && from === partnerId) {
+      try { peer.signal(data); } catch(e) {}
+    }
+  });
+
+  socket.on('chatMessage', ({ text }) => {
+    appendMessage('theirs', text);
+  });
+
+  socket.on('partnerTyping', (isTypingNow) => {
+    typingIndicator.classList.toggle('show', isTypingNow);
+    if (isTypingNow) messagesEl.scrollTop = messagesEl.scrollHeight;
+  });
+
+  socket.on('partnerLeft', () => {
+    destroyPeer();
+    partnerLeftOverlay.classList.remove('hidden');
+    searchingOverlay.classList.add('hidden');
+    setStatus('waiting');
+    appendMessage('system bad', '🔴 Stranger has left the chat.', '');
+    typingIndicator.classList.remove('show');
+  });
+
+  socket.on('disconnect', () => {
+    if (!setupScreen.classList.contains('hidden')) return;
+    appendMessage('system bad', '⚠️ Disconnected from server. Reconnecting...', '');
+  });
+
+  socket.on('reconnect', () => {
+    appendMessage('system good', '✅ Reconnected! Press Next to find a partner.', '');
+  });
+
+  </script>
+</body>
+</html>
