@@ -1,7 +1,6 @@
 /**
  * RandoChat — Full-Stack Random Video Chat Server
  * Stack: Node.js + Express + Socket.io
- * Signaling: WebRTC offer/answer/ICE via Socket.io relay
  */
 
 const express = require('express');
@@ -11,41 +10,36 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
+// ✅ Socket.io with proper CORS
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  },
   pingTimeout: 60000,
   pingInterval: 25000,
 });
 
-// ─── Static Files ──────────────────────────────────────────────────────────────
+// ─── Serve Frontend (IMPORTANT FIX) ─────────────────────────────
+app.use(express.static(__dirname));
+
 app.get("/", (req, res) => {
-  res.send("Server is running");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ─── State ─────────────────────────────────────────────────────────────────────
-// waitingQueue: Array<{ socket, gender: 'male'|'female'|'other', wantsFemale: boolean }>
+// ─── State ─────────────────────────────────────────────────────
 let waitingQueue = [];
-
-// activePairs: Map<socketId, partnerId>
 const activePairs = new Map();
-
-// onlineUsers: Set<socketId>
 const onlineUsers = new Set();
 
-// ─── Matching Logic ────────────────────────────────────────────────────────────
-/**
- * Returns true if userA and candidate are compatible partners.
- * Compatibility rules:
- *  - If userA.wantsFemale → candidate must have gender === 'female'
- *  - If candidate.wantsFemale → userA must have gender === 'female'
- *  - Neither can be in an active pair already
- */
+// ─── Matching Logic ────────────────────────────────────────────
 function isCompatible(userA, candidate) {
   if (candidate.socket.id === userA.socket.id) return false;
   if (activePairs.has(candidate.socket.id)) return false;
 
   const aAcceptsCandidate = !userA.wantsFemale || candidate.gender === 'female';
-  const candidateAcceptsA  = !candidate.wantsFemale || userA.gender === 'female';
+  const candidateAcceptsA = !candidate.wantsFemale || userA.gender === 'female';
 
   return aAcceptsCandidate && candidateAcceptsA;
 }
@@ -69,7 +63,7 @@ function broadcastOnlineCount() {
   io.emit('onlineCount', onlineUsers.size);
 }
 
-// ─── Socket.io ─────────────────────────────────────────────────────────────────
+// ─── Socket.io ─────────────────────────────────────────────────
 io.on('connection', (socket) => {
   onlineUsers.add(socket.id);
   broadcastOnlineCount();
@@ -77,12 +71,10 @@ io.on('connection', (socket) => {
   let myGender = 'other';
   let myWantsFemale = false;
 
-  // ── Join Queue ──────────────────────────────────────────────────────────────
   socket.on('joinQueue', ({ gender, wantsFemale }) => {
     myGender = gender || 'other';
     myWantsFemale = !!wantsFemale;
 
-    // Clean up any existing pair
     const existingPartner = activePairs.get(socket.id);
     if (existingPartner) {
       const partnerSocket = io.sockets.sockets.get(existingPartner);
@@ -97,11 +89,9 @@ io.on('connection', (socket) => {
     const partner = findPartner(newUser);
 
     if (partner) {
-      // Pair established
       activePairs.set(socket.id, partner.socket.id);
       activePairs.set(partner.socket.id, socket.id);
 
-      // The newer socket (initiator) creates the offer
       socket.emit('matched', { partnerId: partner.socket.id, initiator: true });
       partner.socket.emit('matched', { partnerId: socket.id, initiator: false });
     } else {
@@ -110,7 +100,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── WebRTC Signaling Relay ──────────────────────────────────────────────────
   socket.on('signal', ({ to, data }) => {
     const target = io.sockets.sockets.get(to);
     if (target) {
@@ -118,7 +107,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── Text Message Relay ──────────────────────────────────────────────────────
   socket.on('chatMessage', (text) => {
     if (typeof text !== 'string' || text.length > 1000) return;
     const partnerId = activePairs.get(socket.id);
@@ -128,7 +116,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── Leave / Next ────────────────────────────────────────────────────────────
   socket.on('leaveChat', () => {
     const partnerId = activePairs.get(socket.id);
     if (partnerId) {
@@ -140,7 +127,6 @@ io.on('connection', (socket) => {
     removeFromQueue(socket.id);
   });
 
-  // ── Typing Indicator ────────────────────────────────────────────────────────
   socket.on('typing', (isTyping) => {
     const partnerId = activePairs.get(socket.id);
     if (partnerId) {
@@ -149,7 +135,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── Disconnect ──────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     onlineUsers.delete(socket.id);
     broadcastOnlineCount();
@@ -165,7 +150,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// ─── Health Check ──────────────────────────────────────────────────────────────
+// ─── API ───────────────────────────────────────────────────────
 app.get('/api/stats', (req, res) => {
   res.json({
     online: onlineUsers.size,
@@ -174,9 +159,9 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-// ─── Start Server ──────────────────────────────────────────────────────────────
+// ─── Start Server ──────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, () => {
-  console.log(`\n🎥  RandoChat server running at http://localhost:${PORT}`);
-  console.log(`   Press Ctrl+C to stop\n`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
